@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "app_usbx_host.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +43,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+extern UX_HOST_CLASS_HID_KEYBOARD *keyboard;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,5 +57,40 @@
 /* USER CODE END 0 */
 
 /* USER CODE BEGIN 1 */
+/**
+  * @brief  Function implementing hid_keyboard_thread_entry.
+  * @param  thread_input: Not used
+  * @retval none
+  */
+VOID hid_keyboard_thread_entry(ULONG thread_input)
+{
+  ULONG keyboard_key;
+  ULONG keyboard_state;
+
+  while (1)
+  {
+    tx_thread_sleep(MS_TO_TICK(10));
+
+    /* Start if the hid client is a keyboard and connected */
+    if ((keyboard != NULL) &&
+        (keyboard->ux_host_class_hid_keyboard_state == (ULONG) UX_HOST_CLASS_INSTANCE_LIVE))
+    {
+      /* Get the keyboard key pressed */
+      if (ux_host_class_hid_keyboard_key_get(keyboard, &keyboard_key, &keyboard_state) == UX_SUCCESS)
+      {
+        /* Print the key pressed */
+        USBH_UsrLog("%c", (CHAR)keyboard_key);
+      }
+      else
+      {
+        tx_thread_sleep(MS_TO_TICK(10));
+      }
+    }
+    else
+    {
+      tx_thread_sleep(MS_TO_TICK(10));
+    }
+  }
+}
 
 /* USER CODE END 1 */

@@ -137,7 +137,7 @@
    class, then the UX_MAX_CLASSES value can be set to 3 regardless of the number of devices
    that belong to these classes.  */
 
-/* #define UX_MAX_CLASS_DRIVER    2 */
+#define UX_MAX_CLASS_DRIVER    4
 
 /* Defined, this value is the maximum number of classes in the device stack that can be loaded by
    USBX.  */
@@ -161,7 +161,7 @@
    scaled down to conserve memory. Note that this value represents the total number of devices
    regardless of the number of USB buses in the system.  */
 
-/* #define UX_MAX_DEVICES    127 */
+#define UX_MAX_DEVICES    5
 
 /* Defined, this value represents the current number of SCSI logical units represented in the device
    storage class driver.  */

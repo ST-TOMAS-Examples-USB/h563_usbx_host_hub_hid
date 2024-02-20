@@ -33,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define HID_INSTANCE     3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,7 +44,15 @@
 /* Private variables ---------------------------------------------------------*/
 static TX_THREAD ux_host_app_thread;
 /* USER CODE BEGIN PV */
-
+TX_THREAD                   keyboard_app_thread;
+TX_THREAD                   mouse_app_thread;
+TX_THREAD                   msc_app_thread;
+UX_HOST_CLASS_HID           *hid_instance[HID_INSTANCE];
+UX_HOST_CLASS_HID_MOUSE     *mouse;
+UX_HOST_CLASS_HID_KEYBOARD  *keyboard;
+UX_HOST_CLASS_HUB           *hub_instance;
+TX_EVENT_FLAGS_GROUP        ux_app_EventFlag;
+UINT                        msc_index, hid_index;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -150,6 +158,35 @@ UINT MX_USBX_Host_Init(VOID *memory_ptr)
                        UX_HOST_APP_THREAD_START_OPTION) != TX_SUCCESS)
   {
     /* USER CODE BEGIN MAIN_THREAD_CREATE_ERROR */
+
+
+    /* Allocate the stack for HID mouse App thread */
+  if (tx_byte_allocate(byte_pool, (VOID **) &pointer,
+                       UX_HOST_APP_THREAD_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
+  {
+    return TX_POOL_ERROR;
+  }
+
+  /* Create the HID mouse App thread */
+  if (tx_thread_create(&mouse_app_thread, "HID mouse App thread", hid_mouse_thread_entry,
+                       0, pointer, UX_HOST_APP_THREAD_STACK_SIZE, 30, 30, 1, TX_AUTO_START) != TX_SUCCESS)
+  {
+    return TX_THREAD_ERROR;
+  }
+
+  /* Allocate the stack for HID Keyboard App thread */
+  if (tx_byte_allocate(byte_pool, (VOID **) &pointer,
+                       UX_HOST_APP_THREAD_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
+  {
+    return TX_POOL_ERROR;
+  }
+
+  /* Create the HID Keyboard App thread */
+  if (tx_thread_create(&keyboard_app_thread, "HID Keyboard App thread", hid_keyboard_thread_entry,
+                       0, pointer, UX_HOST_APP_THREAD_STACK_SIZE, 30, 30, 1, TX_AUTO_START) != TX_SUCCESS)
+  {
+    return TX_THREAD_ERROR;
+  }
     return TX_THREAD_ERROR;
     /* USER CODE END MAIN_THREAD_CREATE_ERROR */
   }
@@ -169,7 +206,8 @@ UINT MX_USBX_Host_Init(VOID *memory_ptr)
 static VOID app_ux_host_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN app_ux_host_thread_entry */
-  TX_PARAMETER_NOT_USED(thread_input);
+    /* Initialization of USB host */
+  USBX_APP_Host_Init();
   /* USER CODE END app_ux_host_thread_entry */
 }
 
@@ -186,8 +224,8 @@ UINT ux_host_event_callback(ULONG event, UX_HOST_CLASS *current_class, VOID *cur
   UINT status = UX_SUCCESS;
 
   /* USER CODE BEGIN ux_host_event_callback0 */
-  UX_PARAMETER_NOT_USED(current_class);
-  UX_PARAMETER_NOT_USED(current_instance);
+  UX_HOST_CLASS_HID_CLIENT *client  = (UX_HOST_CLASS_HID_CLIENT *)current_instance;
+  UINT idx;
   /* USER CODE END ux_host_event_callback0 */
 
   switch (event)
@@ -196,6 +234,40 @@ UINT ux_host_event_callback(ULONG event, UX_HOST_CLASS *current_class, VOID *cur
 
       /* USER CODE BEGIN UX_DEVICE_INSERTION */
 
+      /* Get current HUB Class */
+      if (current_class -> ux_host_class_entry_function == ux_host_class_hub_entry)
+      {
+        if (hub_instance == UX_NULL)
+        {
+          /* Get current Hid Instance */
+          hub_instance = (UX_HOST_CLASS_HUB *)current_instance;
+
+          USBH_UsrLog("HUB_Device");
+          USBH_UsrLog("PID: %#x ", (UINT)hub_instance ->ux_host_class_hub_device->ux_device_descriptor.idProduct);
+          USBH_UsrLog("VID: %#x ", (UINT)hub_instance ->ux_host_class_hub_device->ux_device_descriptor.idVendor);
+          USBH_UsrLog("USB HUB Host App\n\n");
+        }
+      }
+
+      /* Get current Hid Class */
+      if (current_class -> ux_host_class_entry_function == ux_host_class_hid_entry)
+      {
+        for (idx = 0; idx < HID_INSTANCE; )
+        {
+          if (hid_instance[idx] != NULL)
+          {
+            /* Move to next HID instance */
+            idx ++;
+          }
+          else
+          {
+            /* Get current Storage Instance */
+            hid_instance[idx] = (UX_HOST_CLASS_HID *)current_instance;
+            hid_index = idx;
+            break;
+          }
+        }
+      }
       /* USER CODE END UX_DEVICE_INSERTION */
 
       break;
@@ -203,7 +275,24 @@ UINT ux_host_event_callback(ULONG event, UX_HOST_CLASS *current_class, VOID *cur
     case UX_DEVICE_REMOVAL:
 
       /* USER CODE BEGIN UX_DEVICE_REMOVAL */
+ /* Free HUB Instance */
+      if ((VOID*)hub_instance == current_instance)
+      {
+        hub_instance = UX_NULL;
 
+        USBH_UsrLog("\nHUB Device Unplugged");
+      }
+
+
+      /* Clear hid instance*/
+      for (hid_index = 0; hid_index < HID_INSTANCE; hid_index++)
+      {
+        if ((VOID*)hid_instance[hid_index] == current_instance)
+        {
+          /* Free HID Instance */
+          hid_instance[hid_index] = UX_NULL;
+        }
+      }
       /* USER CODE END UX_DEVICE_REMOVAL */
 
       break;
@@ -211,7 +300,39 @@ UINT ux_host_event_callback(ULONG event, UX_HOST_CLASS *current_class, VOID *cur
     case UX_HID_CLIENT_INSERTION:
 
       /* USER CODE BEGIN UX_HID_CLIENT_INSERTION */
+ USBH_UsrLog("\nHID Client Plugged");
 
+      /* Check the HID_client if this is a HID keyboard device */
+      if (client -> ux_host_class_hid_client_handler == ux_host_class_hid_keyboard_entry)
+      {
+        /* Get current Hid Client */
+        if (keyboard == UX_NULL)
+        {
+          keyboard = client -> ux_host_class_hid_client_local_instance;
+
+          USBH_UsrLog("HID_Keyboard_Device");
+          USBH_UsrLog("PID: %#x ", (UINT)keyboard ->ux_host_class_hid_keyboard_hid->ux_host_class_hid_device->ux_device_descriptor.idProduct);
+          USBH_UsrLog("VID: %#x ", (UINT)keyboard ->ux_host_class_hid_keyboard_hid->ux_host_class_hid_device->ux_device_descriptor.idVendor);
+          USBH_UsrLog("USB HID Host Keyboard App...");
+          USBH_UsrLog("keyboard is ready...\n");
+        }
+      }
+
+      /* Check the HID_client if this is a HID mouse device */
+      if (client -> ux_host_class_hid_client_handler == ux_host_class_hid_mouse_entry)
+      {
+        /* Get current Hid Client */
+        if (mouse == UX_NULL)
+        {
+          mouse = client -> ux_host_class_hid_client_local_instance;
+
+          USBH_UsrLog("HID_Mouse_Device");
+          USBH_UsrLog("PID: %#x ", (UINT)mouse ->ux_host_class_hid_mouse_hid->ux_host_class_hid_device->ux_device_descriptor.idProduct);
+          USBH_UsrLog("VID: %#x ", (UINT)mouse ->ux_host_class_hid_mouse_hid->ux_host_class_hid_device->ux_device_descriptor.idVendor);
+          USBH_UsrLog("USB HID Host Mouse App...");
+          USBH_UsrLog("Mouse is ready...\n");
+        }
+      }
       /* USER CODE END UX_HID_CLIENT_INSERTION */
 
       break;
@@ -219,6 +340,20 @@ UINT ux_host_event_callback(ULONG event, UX_HOST_CLASS *current_class, VOID *cur
     case UX_HID_CLIENT_REMOVAL:
 
       /* USER CODE BEGIN UX_HID_CLIENT_REMOVAL */
+      /* Clear hid client local instance */
+      if ((VOID*)keyboard == client -> ux_host_class_hid_client_local_instance)
+      {
+        /* Clear hid keyboard instance */
+        keyboard = UX_NULL;
+        USBH_UsrLog("\nHID Client Keyboard Unplugged");
+      }
+
+      if ((VOID*)mouse == client -> ux_host_class_hid_client_local_instance)
+      {
+        /* Clear hid mouse instance */
+        mouse = UX_NULL;
+        USBH_UsrLog("\nHID Client Mouse Unplugged");
+      }
 
       /* USER CODE END UX_HID_CLIENT_REMOVAL */
 
@@ -304,5 +439,39 @@ VOID ux_host_error_callback(UINT system_level, UINT system_context, UINT error_c
 }
 
 /* USER CODE BEGIN 1 */
+/**
+  * @brief  USBX_APP_Host_Init
+  *         Initialization of USB host.
+  * @param  none
+  * @retval none
+  */
+VOID USBX_APP_Host_Init(VOID)
+{
+  /* USER CODE BEGIN USB_Host_Init_PreTreatment_0 */
 
+  /* USER CODE END USB_Host_Init_PreTreatment_0 */
+
+  /* Initialize the LL driver */
+  MX_USB_HCD_Init();
+
+  /* Initialize the host controller driver */
+  ux_host_stack_hcd_register(_ux_system_host_hcd_stm32_name,
+                             _ux_hcd_stm32_initialize, (ULONG)USB_DRD_FS,
+                             (ULONG)&hhcd_USB_DRD_FS);
+
+  /* Enable USB Global Interrupt*/
+  HAL_HCD_Start(&hhcd_USB_DRD_FS);
+
+  /* USER CODE BEGIN USB_Host_Init_PostTreatment1 */
+
+  /* Start Application Message */
+  USBH_UsrLog("**** USB OTG HS HUB HID MSC Host **** \n");
+  USBH_UsrLog("USB Host library started.\n");
+
+  /* Wait for Device to be attached */
+  USBH_UsrLog("Starting HUB Application");
+  USBH_UsrLog("Connect your HUB Device");
+
+  /* USER CODE END USB_Host_Init_PostTreatment1 */
+}
 /* USER CODE END 1 */
