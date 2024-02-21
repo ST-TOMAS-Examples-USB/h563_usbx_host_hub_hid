@@ -158,7 +158,9 @@ UINT MX_USBX_Host_Init(VOID *memory_ptr)
                        UX_HOST_APP_THREAD_START_OPTION) != TX_SUCCESS)
   {
     /* USER CODE BEGIN MAIN_THREAD_CREATE_ERROR */
-
+   return TX_THREAD_ERROR;
+   /* USER CODE END MAIN_THREAD_CREATE_ERROR */
+  }
 
     /* Allocate the stack for HID mouse App thread */
   if (tx_byte_allocate(byte_pool, (VOID **) &pointer,
@@ -187,9 +189,7 @@ UINT MX_USBX_Host_Init(VOID *memory_ptr)
   {
     return TX_THREAD_ERROR;
   }
-    return TX_THREAD_ERROR;
-    /* USER CODE END MAIN_THREAD_CREATE_ERROR */
-  }
+
 
   /* USER CODE BEGIN MX_USBX_Host_Init1 */
 
@@ -448,7 +448,7 @@ VOID ux_host_error_callback(UINT system_level, UINT system_context, UINT error_c
 VOID USBX_APP_Host_Init(VOID)
 {
   /* USER CODE BEGIN USB_Host_Init_PreTreatment_0 */
-
+  HAL_PWREx_EnableVddUSB();
   /* USER CODE END USB_Host_Init_PreTreatment_0 */
 
   /* Initialize the LL driver */

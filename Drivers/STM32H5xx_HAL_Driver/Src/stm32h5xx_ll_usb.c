@@ -1109,7 +1109,7 @@ HAL_StatusTypeDef USB_HC_Init(USB_DRD_TypeDef *USBx, uint8_t phy_ch_num,
       break;
   }
 
-  wChRegVal &= ~USB_CHEP_DEVADDR;
+  wChRegVal &= ~(USB_CHEP_DEVADDR|USB_CHEP_ADDR);
   wChRegVal |= (((uint32_t)dev_address << USB_CHEP_DEVADDR_Pos) |
                 ((uint32_t)epnum & 0x0FU));
 

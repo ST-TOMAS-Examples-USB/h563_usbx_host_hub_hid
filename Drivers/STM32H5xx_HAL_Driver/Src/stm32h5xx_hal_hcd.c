@@ -289,7 +289,7 @@ HAL_StatusTypeDef HAL_HCD_HC_Init(HCD_HandleTypeDef *hhcd, uint8_t ch_num,
         }
       }
       else
-      {
+      {//EP0
         if (ch_num == 0U)
         {
           ep0_virtual_channel = (uint8_t)(hhcd->ep0_PmaAllocState & 0xFU);
@@ -333,17 +333,19 @@ HAL_StatusTypeDef HAL_HCD_HC_Init(HCD_HandleTypeDef *hhcd, uint8_t ch_num,
         }
         else
         {
-          if (((hhcd->ep0_PmaAllocState & 0xF00U) >> 8) == 1U)
+          if (((hhcd->ep0_PmaAllocState & 0xF00U) >> 8) == 1U)// is EP0
           {
             ep0_virtual_channel = (uint8_t)(hhcd->ep0_PmaAllocState & 0xFU);
 
             if (((hhcd->ep0_PmaAllocState & 0xF0U) >> 4) == CH_IN_DIR)
             {
+              hhcd->hc[ch_num & 0xFU].pmaaddr0 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr0;
               hhcd->hc[ch_num & 0xFU].pmaaddr1 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr1;
             }
             else
             {
               hhcd->hc[ch_num & 0xFU].pmaaddr0 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr0;
+              hhcd->hc[ch_num & 0xFU].pmaaddr1 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr1;
             }
           }
           else

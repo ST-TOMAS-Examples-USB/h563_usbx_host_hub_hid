@@ -1,4 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
+BOOTPATH.BootPathName=LEGACY
+BOOTPATH.IPParameters=BootPathName
+BOOTPATH.UserSelectedBootPath=LEGACY
 CAD.formats=
 CAD.pinconfig=
 CAD.provider=
@@ -199,8 +202,9 @@ USB.IPParameters=VirtualMode
 USB.VirtualMode=Host_Only
 USBX.BSP.number=1
 USBX.Core_System=1
-USBX.IPParameters=Core_System,UX_Host_CoreStack,UX_Host_class_HUB,UX_Host_class_HID_Core,UX_Host_class_HID_Keyboard,UX_Host_class_HID_Mouse,UX_Host_Controller,UX_HOST_APP_MEM_POOL_SIZE
-USBX.UX_HOST_APP_MEM_POOL_SIZE=1024*40
+USBX.IPParameters=Core_System,UX_Host_CoreStack,UX_Host_class_HUB,UX_Host_class_HID_Core,UX_Host_class_HID_Keyboard,UX_Host_class_HID_Mouse,UX_Host_Controller,UX_HOST_APP_MEM_POOL_SIZE,USBX_HOST_SYS_SIZE
+USBX.USBX_HOST_SYS_SIZE=1024*40
+USBX.UX_HOST_APP_MEM_POOL_SIZE=1024*50
 USBX.UX_Host_Controller=1
 USBX.UX_Host_CoreStack=1
 USBX.UX_Host_class_HID_Core=1
