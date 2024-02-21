@@ -289,75 +289,96 @@ HAL_StatusTypeDef HAL_HCD_HC_Init(HCD_HandleTypeDef *hhcd, uint8_t ch_num,
         }
       }
       else
-      {//EP0
-        if (ch_num == 0U)
-        {
-          ep0_virtual_channel = (uint8_t)(hhcd->ep0_PmaAllocState & 0xFU);
+      {//EP0 -
 
-          if ((ep0_virtual_channel != 0U) && (((hhcd->ep0_PmaAllocState & 0xF0U) >> 4) == CH_IN_DIR))
+        if(hhcd->hc[ch_num & 0xFU].pmaaddr0 ==0){
+          /* PMA Dynamic Allocation for EP0 OUT direction */
+          hhcd->hc[ch_num & 0xFU].ch_dir = CH_OUT_DIR;
+          status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
+          if (status == HAL_ERROR)
           {
-            if (hhcd->hc[ch_num & 0xFU].ch_dir == CH_OUT_DIR)
-            {
-              status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
-
-              if (status == HAL_ERROR)
-              {
-                return HAL_ERROR;
-              }
-            }
-            else
-            {
-              return HAL_ERROR;
-            }
-          }
-          else
-          {
-            /* PMA Dynamic Allocation for EP0 OUT direction */
-            hhcd->hc[ch_num & 0xFU].ch_dir = CH_OUT_DIR;
-            status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
-
-            if (status == HAL_ERROR)
-            {
-              return HAL_ERROR;
-            }
-
-            /* PMA Dynamic Allocation for EP0 IN direction */
-            hhcd->hc[ch_num & 0xFU].ch_dir = CH_IN_DIR;
-            status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
-
-            if (status == HAL_ERROR)
-            {
-              return HAL_ERROR;
-            }
+            return HAL_ERROR;
           }
         }
-        else
-        {
-          if (((hhcd->ep0_PmaAllocState & 0xF00U) >> 8) == 1U)// is EP0
-          {
-            ep0_virtual_channel = (uint8_t)(hhcd->ep0_PmaAllocState & 0xFU);
+        if(hhcd->hc[ch_num & 0xFU].pmaaddr1  == 0){
+          /* PMA Dynamic Allocation for EP0 IN direction */
+          hhcd->hc[ch_num & 0xFU].ch_dir = CH_IN_DIR;
+          status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
 
-            if (((hhcd->ep0_PmaAllocState & 0xF0U) >> 4) == CH_IN_DIR)
-            {
-              hhcd->hc[ch_num & 0xFU].pmaaddr0 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr0;
-              hhcd->hc[ch_num & 0xFU].pmaaddr1 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr1;
-            }
-            else
-            {
-              hhcd->hc[ch_num & 0xFU].pmaaddr0 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr0;
-              hhcd->hc[ch_num & 0xFU].pmaaddr1 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr1;
-            }
-          }
-          else
+          if (status == HAL_ERROR)
           {
-            status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
-
-            if (status == HAL_ERROR)
-            {
-              return HAL_ERROR;
-            }
+            return HAL_ERROR;
           }
         }
+
+        // if (ch_num == 0U)
+        // {
+        //   ep0_virtual_channel = (uint8_t)(hhcd->ep0_PmaAllocState & 0xFU);
+
+        //   if ((ep0_virtual_channel != 0U) && (((hhcd->ep0_PmaAllocState & 0xF0U) >> 4) == CH_IN_DIR))
+        //   {
+        //     if (hhcd->hc[ch_num & 0xFU].ch_dir == CH_OUT_DIR)
+        //     {
+        //       status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
+
+        //       if (status == HAL_ERROR)
+        //       {
+        //         return HAL_ERROR;
+        //       }
+        //     }
+        //     else
+        //     {
+        //       return HAL_ERROR;
+        //     }
+        //   }
+        //   else
+        //   {
+        //     /* PMA Dynamic Allocation for EP0 OUT direction */
+        //     hhcd->hc[ch_num & 0xFU].ch_dir = CH_OUT_DIR;
+        //     status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
+
+        //     if (status == HAL_ERROR)
+        //     {
+        //       return HAL_ERROR;
+        //     }
+
+        //     /* PMA Dynamic Allocation for EP0 IN direction */
+        //     hhcd->hc[ch_num & 0xFU].ch_dir = CH_IN_DIR;
+        //     status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
+
+        //     if (status == HAL_ERROR)
+        //     {
+        //       return HAL_ERROR;
+        //     }
+        //   }
+        // }
+        // else
+        // {
+        //   if (((hhcd->ep0_PmaAllocState & 0xF00U) >> 8) == 1U)// is EP0
+        //   {
+        //     ep0_virtual_channel = (uint8_t)(hhcd->ep0_PmaAllocState & 0xFU);
+
+        //     if (((hhcd->ep0_PmaAllocState & 0xF0U) >> 4) == CH_IN_DIR)
+        //     {
+        //       hhcd->hc[ch_num & 0xFU].pmaaddr0 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr0;
+        //       hhcd->hc[ch_num & 0xFU].pmaaddr1 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr1;
+        //     }
+        //     else
+        //     {
+        //       hhcd->hc[ch_num & 0xFU].pmaaddr0 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr0;
+        //       hhcd->hc[ch_num & 0xFU].pmaaddr1 = hhcd->hc[ep0_virtual_channel & 0xFU].pmaaddr1;
+        //     }
+        //   }
+        //   else
+        //   {
+        //     status = HAL_HCD_PMAlloc(hhcd, ch_num, HCD_SNG_BUF, 64U);
+
+        //     if (status == HAL_ERROR)
+        //     {
+        //       return HAL_ERROR;
+        //     }
+        //   }
+        // }
       }
     }
   }
@@ -2362,61 +2383,61 @@ static uint8_t HAL_HCD_Get_FreePhyChannel(HCD_HandleTypeDef *hhcd, uint8_t ch_nu
                                           uint8_t epnum, uint8_t ep_type)
 {
   uint8_t idx;
+  idx = 0U;
 
   if ((epnum & 0x7FU) == 0U)
   {
-    idx = 0U;
-
-    if (ch_num == 0U)
+    // if (ch_num == 0U)
+    // {
+    /* Find a new available physical in channel */
+    for (idx = 0U; idx < hhcd->Init.Host_channels; idx++)
     {
-      if (hhcd->phy_chin_state[idx] == 0U)
+      if ((hhcd->phy_chin_state[idx] == 0U) && (hhcd->phy_chout_state[idx] == 0U))
       {
         /* chin_state to store the ep_type to be used for the same channel in OUT direction
-         * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
+        * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
         hhcd->phy_chin_state[idx] = (((uint16_t)ch_num + 1U) << 4U) |
                                     ((uint16_t)ep_type + 1U) |
                                     (((uint16_t)epnum & 0x0FU) << 8U);
-      }
-
-      if (hhcd->phy_chout_state[idx] == 0U)
-      {
         /* chout_state will store the ep_type to be used for the same channel in IN direction
-         * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
+        * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
         hhcd->phy_chout_state[idx] = (((uint16_t)ch_num + 1U) << 4U) |
-                                     ((uint16_t)ep_type + 1U) |
-                                     (((uint16_t)epnum & 0x0FU) << 8U);
+                                    ((uint16_t)ep_type + 1U) |
+                                    (((uint16_t)epnum & 0x0FU) << 8U);
+        return idx;
       }
-    }
-    else
-    {
-      if ((epnum & 0x80U) != 0U)
-      {
-        if (((hhcd->phy_chin_state[idx] & 0xF0U) >> 4U) != ((uint16_t)ch_num + 1U))
-        {
-          /* chin_state to store the ep_type to be used for the same channel in OUT direction
-           * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
-          hhcd->phy_chin_state[idx] = (((uint16_t)ch_num + 1U) << 4U) |
-                                      ((uint16_t)ep_type + 1U) |
-                                      (((uint16_t)epnum & 0x0FU) << 8U);
-        }
-      }
-      else
-      {
-        if (((hhcd->phy_chout_state[idx] & 0xF0U) >> 4U) != ((uint16_t)ch_num + 1U))
-        {
-          /* chout_state will store the ep_type to be used for the same channel in IN direction
-           * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
-          hhcd->phy_chout_state[idx] = (((uint16_t)ch_num + 1U) << 4U) |
-                                       ((uint16_t)ep_type + 1U) |
-                                       (((uint16_t)epnum & 0x0FU) << 8U);
-        }
-      }
-    }
 
-    return idx;
+    // }
+    // else
+    // {
+    //   if ((epnum & 0x80U) != 0U)
+    //   {
+    //     if (((hhcd->phy_chin_state[idx] & 0xF0U) >> 4U) != ((uint16_t)ch_num + 1U))
+    //     {
+    //       /* chin_state to store the ep_type to be used for the same channel in OUT direction
+    //        * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
+    //       hhcd->phy_chin_state[idx] = (((uint16_t)ch_num + 1U) << 4U) |
+    //                                   ((uint16_t)ep_type + 1U) |
+    //                                   (((uint16_t)epnum & 0x0FU) << 8U);
+    //     }
+    //   }
+    //   else
+    //   {
+    //     if (((hhcd->phy_chout_state[idx] & 0xF0U) >> 4U) != ((uint16_t)ch_num + 1U))
+    //     {
+    //       /* chout_state will store the ep_type to be used for the same channel in IN direction
+    //        * adding + 1 to ep_type avoid starting with a 0 value. ep_type take by default (0/1/2/3) */
+    //       hhcd->phy_chout_state[idx] = (((uint16_t)ch_num + 1U) << 4U) |
+    //                                    ((uint16_t)ep_type + 1U) |
+    //                                    (((uint16_t)epnum & 0x0FU) << 8U);
+    //     }
+    //   }
+    // }
+
+
+    }
   }
-
-  if ((epnum & 0x80U) != 0U)
+  else if ((epnum & 0x80U) != 0U)
   {
     /* Find a new available physical in channel */
     for (idx = 1U; idx < hhcd->Init.Host_channels; idx++)
