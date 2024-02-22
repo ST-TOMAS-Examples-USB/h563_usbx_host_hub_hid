@@ -1906,8 +1906,8 @@ static void HCD_HC_IN_IRQHandler(HCD_HandleTypeDef *hhcd, uint8_t ch_num)
       if (((ch_reg) & USB_CH_RX_STRX) == USB_CH_RX_ACK_SBUF)
       {
         /* Get Control Data OUT Packet */
-        received_bytes = (uint16_t)HCD_GET_CH_RX_CNT(hhcd->Instance, phy_chnum);
-
+        received_bytes = (uint16_t)HCD_GET_CH_RX_CNT2(hhcd->Instance, phy_chnum, hhcd->hc[ch_num & 0xFU].speed );
+        // received_bytes = (uint16_t)HCD_GET_CH_RX_CNT(hhcd->Instance, phy_chnum);
         /* Read the byte from PMA to user Buffer(System Memory) */
         USB_ReadPMA(hhcd->Instance, hhcd->hc[ch_num & 0xFU].xfer_buff,
                     hhcd->hc[ch_num & 0xFU].pmaadress, (uint16_t)received_bytes);

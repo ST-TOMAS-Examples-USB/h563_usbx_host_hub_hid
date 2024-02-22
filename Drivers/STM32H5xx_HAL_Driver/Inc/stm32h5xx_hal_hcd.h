@@ -498,12 +498,48 @@ __STATIC_INLINE uint16_t HCD_GET_CH_RX_CNT(HCD_TypeDef *Instance, uint16_t bChNu
   __IO uint32_t count = 10U;
 
   /* Get Host core Speed */
-  HostCoreSpeed = USB_GetHostSpeed(Instance);
+ HostCoreSpeed = USB_GetHostSpeed(Instance);
 
   /* Count depends on device LS */
   if (HostCoreSpeed == USB_DRD_SPEED_LS)
   {
     count = (63U * (HAL_RCC_GetHCLKFreq() / 1000000U)) / 100U;
+  }
+
+  if (count > 15U)
+  {
+    count = HCD_MAX(10U, (count - 15U));
+  }
+
+  /* WA: few cycles for RX PMA descriptor to update */
+  while (count > 0U)
+  {
+    count--;
+  }
+
+  return (uint16_t)USB_DRD_GET_CHEP_RX_CNT((Instance), (bChNum));
+}
+
+/**
+  * @brief  gets counter of the rx buffer.
+  * @param  Instance USB peripheral instance register address.
+  * @param  bChNum channel Number.
+  * @retval Counter value
+  */
+__STATIC_INLINE uint16_t HCD_GET_CH_RX_CNT2(HCD_TypeDef *Instance, uint16_t bChNum, uint8_t speed)
+{
+  uint32_t HostCoreSpeed;
+  __IO uint32_t count = 10U;
+
+  /* Get Host core Speed */
+  HostCoreSpeed = speed;
+//  HostCoreSpeed = USB_GetHostSpeed(Instance);
+
+  /* Count depends on device LS */
+  if (HostCoreSpeed == USB_DRD_SPEED_LS)
+  {
+    count = (63U * (HAL_RCC_GetHCLKFreq() / 1000000U)) / 100U;
+    count  += 3;
   }
 
   if (count > 15U)
